@@ -361,43 +361,17 @@ Contributions are welcome! Please follow these steps:
 ```bash
 # Clone your fork
 git clone https://github.com/YOUR_USERNAME/physiotherapy-app.git
+```
 
+```
 # Install dependencies
 cd physiotherapy-app/frontend
 npm install
+```
 
+```
 # Start development server
 npm start
-```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see below:
-
-```
-MIT License
-
-Copyright (c) 2024 MediMotion
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 ```
 
 ---
@@ -422,29 +396,6 @@ This application is designed to assist with exercise form and provide feedback. 
 <br>
 <strong>Made with ❤️ for physiotherapy and rehabilitation</strong>
 <br>
-<br>
-<sub>© 2024 MediMotion. All rights reserved.</sub>
-</div>
-EOF
 
-echo "✅ README.md has been created successfully!"
-```
 
-To use this:
 
-1. Copy the entire bash script above
-2. Paste it into your terminal
-3. Press Enter
-
-The script will create the `README.md` file in your current directory. Then you can:
-
-```bash
-# Add to git
-git add README.md
-
-# Commit
-git commit -m "Add comprehensive README.md"
-
-# Push to GitHub
-git push origin main
-```
