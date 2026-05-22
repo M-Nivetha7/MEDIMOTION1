@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MediMotion - Physiotherapy Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .status-bar {
+            background: #0f3460;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .exercise-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .exercise-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .exercise-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .exercise-btn.active {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+            font-weight: bold;
+        }
+        
+        .exercise-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .control-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .control-btn.start {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .control-btn.stop {
+            background: #f44336;
+            color: white;
+        }
+        
+        .control-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .camera-section {
+            flex: 2;
+            min-width: 500px;
+        }
+        
+        .angles-section {
+            flex: 1;
+            min-width: 280px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .video-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .video-container {
+            position: relative;
+            padding-bottom: 75%;
+        }
+        
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        video {
+            position: relative;
+            transform: scaleX(-1);
+        }
+        
+        canvas {
+            transform: scaleX(-1);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-green {
+            width: 20px;
+            height: 3px;
+            background: #00FF00;
+        }
+        
+        .legend-red {
+            width: 12px;
+            height: 12px;
+            background: #FF0000;
+            border-radius: 50%;
+        }
+        
+        .angles-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .angles-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .live-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .angle-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .angle-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .angle-name {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .angle-value {
+            font-size: 32px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .angle-unit {
+            font-size: 14px;
+            color: #999;
+            margin-left: 5px;
+        }
+        
+        .angle-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .angle-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.2s ease;
+        }
+        
+        .feedback-card {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            border-left: 4px solid #667eea;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .score-circle {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #4CAF5020, #8BC34A20);
+            border-radius: 10px;
+        }
+        
+        .score-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .no-pose {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        /* Text overlay on canvas - NOT mirrored */
+        .text-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #00FF00;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        @media (max-width: 768px) {
+            .exercise-buttons {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 22px; }
+            .camera-section { min-width: 100%; }
+            .angle-value { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 MediMotion - Real-time Physiotherapy Tracker</h1>
+        
+        <div class="status-bar">
+            <span id="statusText">📹 Initializing...</span>
+            <span id="trackingStatus"></span>
+        </div>
+        
+        <div class="exercise-panel">
+            <h3>Select Exercise</h3>
+            <div class="exercise-buttons">
+                <button class="exercise-btn active" data-exercise="shoulder_raise">🏋️ Shoulder Raise</button>
+                <button class="exercise-btn" data-exercise="elbow_curl">💪 Elbow Curl</button>
+                <button class="exercise-btn" data-exercise="knee_bend">🦵 Knee Bend</button>
+            </div>
+        </div>
+        
+        <button id="trackBtn" class="control-btn start">▶ START TRACKING</button>
+        
+        <div class="main-layout">
+            <!-- Camera Section -->
+            <div class="camera-section">
+                <div class="video-wrapper">
+                    <div class="video-container">
+                        <video id="video" autoplay playsinline muted></video>
+                        <canvas id="canvas"></canvas>
+                        <!-- Text overlay for angles (NOT mirrored) -->
+                        <div id="textOverlay" class="text-overlay"></div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-green"></div><span>Green = Skeleton Lines</span></div>
+                    <div class="legend-item"><div class="legend-red"></div><span>Red = Joint Positions</span></div>
+                    <div class="legend-item"><span>📐 Numbers = Real-time Angles</span></div>
+                </div>
+            </div>
+            
+            <!-- Live Angles Section -->
+            <div class="angles-section">
+                <div class="angles-header">
+                    <span class="angles-title">📐 Live Joint Angles</span>
+                    <span class="live-badge" id="liveBadge">LIVE</span>
+                </div>
+                <div id="anglesList">
+                    <div class="no-pose">Start tracking to see joint angles</div>
+                </div>
+                
+                <div id="scoreCard" class="score-circle" style="display: none;">
+                    <div style="font-size: 14px; color: #666;">Performance Score</div>
+                    <div class="score-number" id="scoreValue">0%</div>
+                </div>
+                
+                <div id="feedbackCard" class="feedback-card" style="display: none;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">🤖 AI Coach</div>
+                    <div id="feedbackText"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="exercise-panel">
+            <h3>💡 Tips for Best Tracking</h3>
+            <ul style="margin-left: 20px;">
+                <li>Stand 6-8 feet from camera</li>
+                <li>Keep full body in frame (head to feet)</li>
+                <li>Ensure good lighting on your body</li>
+                <li>Wear contrasting clothing (not all black)</li>
+                <li>Face the camera directly</li>
+                <li>Move slowly and controlled</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+    
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusText = document.getElementById('statusText');
+        const trackingStatus = document.getElementById('trackingStatus');
+        const anglesList = document.getElementById('anglesList');
+        const trackBtn = document.getElementById('trackBtn');
+        const liveBadge = document.getElementById('liveBadge');
+        const scoreCard = document.getElementById('scoreCard');
+        const scoreValue = document.getElementById('scoreValue');
+        const feedbackCard = document.getElementById('feedbackCard');
+        const feedbackText = document.getElementById('feedbackText');
+        const textOverlay = document.getElementById('textOverlay');
+        
+        let pose = null;
+        let camera = null;
+        let isTracking = false;
+        let currentExercise = 'shoulder_raise';
+        
+        document.querySelectorAll('.exercise-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.exercise-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentExercise = btn.dataset.exercise;
+                if (!isTracking) {
+                    anglesList.innerHTML = '<div class="no-pose">Start tracking to see joint angles</div>';
+                }
+            });
+        });
+        
+        function calculateAngle(pointA, pointB, pointC) {
+            const angle1 = Math.atan2(pointA.y - pointB.y, pointA.x - pointB.x);
+            const angle2 = Math.atan2(pointC.y - pointB.y, pointC.x - pointB.x);
+            let angle = (angle2 - angle1) * 180 / Math.PI;
+            if (angle < 0) angle += 360;
+            if (angle > 180) angle = 360 - angle;
+            return angle;
+        }
+        
+        function drawSkeleton(landmarks) {
+            if (!landmarks) return;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            const connections = [
+                [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+                [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]
+            ];
+            
+            connections.forEach(([start, end]) => {
+                const p1 = landmarks[start];
+                const p2 = landmarks[end];
+                if (p1 && p2 && p1.visibility > 0.5 && p2.visibility > 0.5) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x * width, p1.y * height);
+                    ctx.lineTo(p2.x * width, p2.y * height);
+                    ctx.strokeStyle = '#00FF00';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+            });
+            
+            landmarks.forEach(landmark => {
+                if (landmark.visibility > 0.5) {
+                    ctx.beginPath();
+                    ctx.arc(landmark.x * width, landmark.y * height, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#FF0000';
+                    ctx.fill();
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        function updateAnglesDisplay(landmarks) {
+            if (!landmarks) {
+                anglesList.innerHTML = '<div class="no-pose">No pose detected. Stand in front of camera.</div>';
+                textOverlay.innerHTML = '';
+                scoreCard.style.display = 'none';
+                feedbackCard.style.display = 'none';
+                return;
+            }
+            
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+            const leftElbow = landmarks[13];
+            const rightElbow = landmarks[14];
+            const leftWrist = landmarks[15];
+            const rightWrist = landmarks[16];
+            const leftHip = landmarks[23];
+            const rightHip = landmarks[24];
+            const leftKnee = landmarks[25];
+            const rightKnee = landmarks[26];
+            const leftAnkle = landmarks[27];
+            const rightAnkle = landmarks[28];
+            
+            let angles = {};
+            let scores = [];
+            let overlayText = '';
+            
+            if (currentExercise === 'shoulder_raise') {
+                if (leftShoulder && leftHip && leftElbow && leftShoulder.visibility > 0.5) {
+                    angles['Left Shoulder'] = calculateAngle(leftHip, leftShoulder, leftElbow);
+                    scores.push(angles['Left Shoulder']);
+                }
+                if (rightShoulder && rightHip && rightElbow && rightShoulder.visibility > 0.5) {
+                    angles['Right Shoulder'] = calculateAngle(rightHip, rightShoulder, rightElbow);
+                    scores.push(angles['Right Shoulder']);
+                }
+                // Text for overlay (NOT MIRRORED)
+                if (angles['Left Shoulder']) overlayText += `L-Shoulder: ${Math.round(angles['Left Shoulder'])}°\n`;
+                if (angles['Right Shoulder']) overlayText += `R-Shoulder: ${Math.round(angles['Right Shoulder'])}°`;
+            } 
+            else if (currentExercise === 'elbow_curl') {
+                if (leftShoulder && leftElbow && leftWrist && leftElbow.visibility > 0.5) {
+                    angles['Left Elbow'] = calculateAngle(leftShoulder, leftElbow, leftWrist);
+                    scores.push(angles['Left Elbow']);
+                }
+                if (rightShoulder && rightElbow && rightWrist && rightElbow.visibility > 0.5) {
+                    angles['Right Elbow'] = calculateAngle(rightShoulder, rightElbow, rightWrist);
+                    scores.push(angles['Right Elbow']);
+                }
+                if (angles['Left Elbow']) overlayText += `L-Elbow: ${Math.round(angles['Left Elbow'])}°\n`;
+                if (angles['Right Elbow']) overlayText += `R-Elbow: ${Math.round(angles['Right Elbow'])}°`;
+            } 
+            else if (currentExercise === 'knee_bend') {
+                if (leftHip && leftKnee && leftAnkle && leftKnee.visibility > 0.5) {
+                    angles['Left Knee'] = calculateAngle(leftHip, leftKnee, leftAnkle);
+                    scores.push(angles['Left Knee']);
+                }
+                if (rightHip && rightKnee && rightAnkle && rightKnee.visibility > 0.5) {
+                    angles['Right Knee'] = calculateAngle(rightHip, rightKnee, rightAnkle);
+                    scores.push(angles['Right Knee']);
+                }
+                if (angles['Left Knee']) overlayText += `L-Knee: ${Math.round(angles['Left Knee'])}°\n`;
+                if (angles['Right Knee']) overlayText += `R-Knee: ${Math.round(angles['Right Knee'])}°`;
+            }
+            
+            // Update text overlay (NOT mirrored)
+            textOverlay.innerHTML = overlayText.replace(/\n/g, '<br>');
+            
+            if (Object.keys(angles).length > 0) {
+                let html = '';
+                for (const [joint, angle] of Object.entries(angles)) {
+                    let color = '#FF5722';
+                    let status = '⚠️ Needs work';
+                    if (angle > 150) { color = '#4CAF50'; status = '✅ Excellent'; }
+                    else if (angle > 120) { color = '#FFC107'; status = '💪 Good'; }
+                    
+                    html += `
+                        <div class="angle-card">
+                            <div class="angle-name">${joint}</div>
+                            <div>
+                                <span class="angle-value" style="color: ${color}">${Math.round(angle)}</span>
+                                <span class="angle-unit">°</span>
+                                <span style="float: right; font-size: 12px; color: ${color};">${status}</span>
+                            </div>
+                            <div class="angle-bar">
+                                <div class="angle-fill" style="width: ${(angle/180)*100}%; background: ${color}"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+                anglesList.innerHTML = html;
+                
+                if (scores.length > 0) {
+                    let totalScore = 0;
+                    for (const angle of scores) {
+                        if (angle > 150) totalScore += 90;
+                        else if (angle > 120) totalScore += 70;
+                        else totalScore += 50;
+                    }
+                    const avgScore = totalScore / scores.length;
+                    scoreValue.innerText = `${Math.round(avgScore)}%`;
+                    scoreCard.style.display = 'block';
+                    
+                    let feedbackMsg = '';
+                    if (avgScore > 80) feedbackMsg = '🎉 Excellent form! Full range of motion achieved! Keep it up!';
+                    else if (avgScore > 60) feedbackMsg = '💪 Good effort! Try to extend a bit more for better results.';
+                    else if (avgScore > 0) feedbackMsg = '📈 Keep practicing! Focus on reaching full extension in your movements.';
+                    
+                    if (feedbackMsg) {
+                        feedbackText.innerText = feedbackMsg;
+                        feedbackCard.style.display = 'block';
+                    }
+                }
+            } else {
+                anglesList.innerHTML = '<div class="no-pose">Detecting pose...<br>Make sure your full body is visible</div>';
+                scoreCard.style.display = 'none';
+                feedbackCard.style.display = 'none';
+            }
+        }
+        
+        function onResults(results) {
+            if (!isTracking) return;
+            
+            if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            }
+            
+            ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+            
+            if (results.poseLandmarks) {
+                drawSkeleton(results.poseLandmarks);
+                updateAnglesDisplay(results.poseLandmarks);
+            } else {
+                updateAnglesDisplay(null);
+                textOverlay.innerHTML = '';
+            }
+        }
+        
+        async function initPose() {
+            statusText.innerText = '📹 Loading camera...';
+            
+            pose = new Pose({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+            });
+            
+            pose.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            
+            pose.onResults(onResults);
+            
+            camera = new Camera(video, {
+                onFrame: async () => {
+                    if (pose && isTracking) {
+                        await pose.send({image: video});
+                    }
+                },
+                width: 640,
+                height: 480
+            });
+            
+            await camera.start();
+            statusText.innerText = '✅ Ready! Click START TRACKING';
+        }
+        
+        trackBtn.addEventListener('click', () => {
+            isTracking = !isTracking;
+            if (isTracking) {
+                trackBtn.textContent = '⏹ STOP TRACKING';
+                trackBtn.className = 'control-btn stop';
+                trackingStatus.innerHTML = '<span style="color: #00ff00;">● LIVE TRACKING ACTIVE</span>';
+                statusText.innerText = '🔴 Tracking in progress...';
+                liveBadge.style.animation = 'pulse 1.5s infinite';
+                anglesList.innerHTML = '<div class="no-pose">Detecting pose...</div>';
+                scoreCard.style.display = 'none';
+                feedbackCard.style.display = 'none';
+                textOverlay.innerHTML = '';
+            } else {
+                trackBtn.textContent = '▶ START TRACKING';
+                trackBtn.className = 'control-btn start';
+                trackingStatus.innerHTML = '';
+                statusText.innerText = '✅ Ready! Click START TRACKING';
+                liveBadge.style.animation = 'none';
+                anglesList.innerHTML = '<div class="no-pose">Start tracking to see joint angles</div>';
+                scoreCard.style.display = 'none';
+                feedbackCard.style.display = 'none';
+                textOverlay.innerHTML = '';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        });
+        
+        initPose();
+    </script>
+</body>
+</html>
