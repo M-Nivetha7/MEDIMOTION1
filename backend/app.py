@@ -1,33 +1,38 @@
-import cv2
-import mediapipe as mp
-import numpy as np
-import base64
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import cv2
+import mediapipe as mp
+import base64
+import numpy as np
+from utils import save_session_data, get_user_history, calculate_performance_score, generate_feedback
+from auth import AuthManager
+from pose_tracker import PoseTracker
+from report import generate_pdf_report
 
 app = Flask(__name__)
 CORS(app)
 
+# Initialize components
+auth_manager = AuthManager()
+pose_tracker = PoseTracker()
+
+# Initialize MediaPipe
 mp_pose = mp.solutions.pose
-mp_drawing = mp.solutions.drawing_utils
 pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
-def calculate_angle(a, b, c):
-    a, b, c = np.array(a), np.array(b), np.array(c)
-    radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
-    angle = np.abs(radians*180.0/np.pi)
-    return angle if angle <= 180 else 360-angle
-
 @app.route('/api/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'ok'})
+def health_check():
+    return jsonify({'status': 'healthy', 'message': 'MediMotion API is running'})
 
 @app.route('/api/analyze_pose', methods=['POST'])
 def analyze_pose():
     try:
         data = request.json
-        image_data = data['image'].split(',')[1]
+        image_data = data['image']
         exercise_type = data.get('exercise_type', 'shoulder_raise')
+        
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
         
         image_bytes = base64.b64decode(image_data)
         np_arr = np.frombuffer(image_bytes, np.uint8)
@@ -36,67 +41,72 @@ def analyze_pose():
         if frame is None:
             return jsonify({'error': 'Invalid image'}), 400
         
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = pose.process(rgb)
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(rgb_frame)
         
         angles = {}
         
         if results.pose_landmarks:
-            lm = results.pose_landmarks.landmark
             h, w = frame.shape[:2]
+            landmarks = results.pose_landmarks.landmark
             
             # Get coordinates
-            ls = [lm[11].x*w, lm[11].y*h]
-            rs = [lm[12].x*w, lm[12].y*h]
-            le = [lm[13].x*w, lm[13].y*h]
-            re = [lm[14].x*w, lm[14].y*h]
-            lw = [lm[15].x*w, lm[15].y*h]
-            rw = [lm[16].x*w, lm[16].y*h]
-            lh = [lm[23].x*w, lm[23].y*h]
-            rh = [lm[24].x*w, lm[24].y*h]
-            lk = [lm[25].x*w, lm[25].y*h]
-            rk = [lm[26].x*w, lm[26].y*h]
-            la = [lm[27].x*w, lm[27].y*h]
-            ra = [lm[28].x*w, lm[28].y*h]
+            coords = pose_tracker.get_landmark_coordinates(landmarks, w, h)
             
             # Calculate angles
-            if exercise_type == 'shoulder_raise':
-                angles['Left Shoulder'] = calculate_angle(lh, ls, le)
-                angles['Right Shoulder'] = calculate_angle(rh, rs, re)
-            elif exercise_type == 'elbow_curl':
-                angles['Left Elbow'] = calculate_angle(ls, le, lw)
-                angles['Right Elbow'] = calculate_angle(rs, re, rw)
-            else:
-                angles['Left Knee'] = calculate_angle(lh, lk, la)
-                angles['Right Knee'] = calculate_angle(rh, rk, ra)
+            angles = pose_tracker.calculate_exercise_angles(coords, exercise_type)
+            
+            # Count repetitions
+            rep_count = pose_tracker.count_repetition(angles, exercise_type)
             
             # Draw skeleton
-            for connection in mp_pose.POSE_CONNECTIONS:
-                start = (int(lm[connection[0]].x*w), int(lm[connection[0]].y*h))
-                end = (int(lm[connection[1]].x*w), int(lm[connection[1]].y*h))
-                cv2.line(frame, start, end, (0,255,0), 3)
+            pose_tracker.draw_pose(frame, results)
             
-            # Draw joints
-            for i in range(33):
-                x, y = int(lm[i].x*w), int(lm[i].y*h)
-                cv2.circle(frame, (x,y), 6, (0,0,255), -1)
-                cv2.circle(frame, (x,y), 8, (255,255,255), 2)
-            
-            # Add text
+            # Add angle text
             y = 30
             for joint, angle in angles.items():
                 cv2.putText(frame, f'{joint}: {int(angle)}°', (10, y),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                 y += 30
+            
+            cv2.putText(frame, f'Reps: {rep_count}', (10, y),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
         
         _, buffer = cv2.imencode('.jpg', frame)
-        processed = base64.b64encode(buffer).decode()
+        processed_image = base64.b64encode(buffer).decode('utf-8')
         
-        return jsonify({'angles': angles, 'processed_image': f'data:image/jpeg;base64,{processed}'})
+        return jsonify({
+            'angles': angles,
+            'rep_count': pose_tracker.rep_counter,
+            'processed_image': f'data:image/jpeg;base64,{processed_image}'
+        })
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/save_session', methods=['POST'])
+def save_session():
+    try:
+        data = request.json
+        username = data.get('username')
+        session_data = data.get('session_data')
+        save_session_data(username, session_data)
+        return jsonify({'message': 'Session saved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get_history/<username>', methods=['GET'])
+def get_history(username):
+    try:
+        history = get_user_history(username)
+        return jsonify({'history': history})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    print("✓ Server starting on http://localhost:5000")
+    print("\n" + "="*50)
+    print("🏥 MediMotion Backend Server")
+    print("="*50)
+    print("Server running on http://localhost:5000")
+    print("="*50 + "\n")
     app.run(debug=True, port=5000, host='0.0.0.0')
