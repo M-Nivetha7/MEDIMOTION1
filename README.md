@@ -1,6 +1,3 @@
-Here's the complete bash script that will create the README.md file for you:
-
-```bash
 #!/bin/bash
 
 cat > README.md << 'EOF'
